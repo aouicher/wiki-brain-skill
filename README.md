@@ -42,7 +42,7 @@ Don't worry about connecting these manually — the skill walks you through ever
 Copy-paste this entire line and hit Enter:
 
 ```bash
-git clone https://github.com/tenfoldmarc/wiki-brain-skill ~/.claude/skills/wiki-brain
+git clone https://github.com/aouicher/wiki-brain-skill ~/.claude/skills/wiki-brain
 ```
 
 You'll see some text scroll by. Wait until it finishes (takes a few seconds).
