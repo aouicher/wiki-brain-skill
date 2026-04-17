@@ -89,7 +89,7 @@ if [ -n "$REBUILD_DAYS" ] && [ "$REBUILD_DAYS" != "0" ]; then
     if [ "$CHANGED" = "1" ]; then
       notify "Rebuilding knowledge graph" "Running in background…"
       (
-        cd "$VAULT" && graphify . --wiki --update >/tmp/wiki-brain-rebuild.log 2>&1
+        cd "$VAULT" && graphify ./wiki --update >/tmp/wiki-brain-rebuild.log 2>&1
         RC=$?
         mkdir -p "$VAULT/graphify-out"
         touch "$STAMP"

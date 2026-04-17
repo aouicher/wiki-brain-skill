@@ -7,7 +7,7 @@ description: "Turn Claude Code into a knowledge base that compounds. Every conve
 
 Turn Claude Code into a system that *remembers*. Every conversation feeds an ever-growing personal wiki you browse in Obsidian. Claude queries a knowledge graph before reading raw files, so answers are faster, smarter, and cheaper over time.
 
-Based on [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy) and powered by [Graphify](https://github.com/tenfoldmarc/graphify-skill).
+Based on [Andrej Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy) and powered by [Graphify](https://github.com/safishamsi/graphify).
 
 ---
 
@@ -205,6 +205,8 @@ python3 -m pip install graphifyy 2>&1 | tail -3 || python3 -m pip install graphi
 
 Verify with `python3 -c "import graphify" && echo OK`. If it still fails, show the error and stop — tell the user to run `pip install graphifyy` manually and retry `/wiki-brain`.
 
+> **Note:** The PyPI package is named `graphifyy` (double-y). The CLI command is still `graphify` (single y). This is expected.
+
 ### 0.7 — Create the vault structure
 
 Inside the user's vault path, create:
@@ -290,13 +292,13 @@ Write `~/.claude/skills/wiki-brain/config.json`:
 
 ### 0.11 — First build
 
-Run the first Graphify build on the (empty) wiki so the output directory exists:
+Run the first Graphify build on the wiki folder so the output directory exists:
 
 ```bash
-cd "$VAULT" && graphify . --wiki 2>&1 | tail -5 || true
+cd "$VAULT" && graphify ./wiki 2>&1 | tail -5 || true
 ```
 
-It's OK if this does nothing — the wiki is empty. Just prime the directory.
+It's OK if this does nothing — the wiki may be empty. Just prime the output directory.
 
 ### 0.12 — Confirm and end setup
 
@@ -376,12 +378,13 @@ WHAT WOULD YOU LIKE TO DO?
 
 `/wiki-brain query "<question>"`
 
-1. Run `graphify query "<question>"` from the vault directory. This returns a graph-based answer.
-2. Read `<vault>/wiki/index.md` to find any directly relevant pages the graph query might have missed.
-3. Read those pages.
-4. Synthesize an answer that cites the wiki pages (with `[[Page Name]]` links).
-5. **If the answer itself is valuable**, ask: "Want me to file this answer back into the wiki as a new page?" If yes, create `<vault>/wiki/<topic>-analysis-<date>.md` and update the index.
-6. Append to log:
+1. Run `graphify query "<question>" --graph graphify-out/graph.json` from the vault directory. This returns a graph-based answer.
+2. If `graphify-out/graph.json` does not exist, skip to step 3 and note that the graph hasn't been built yet.
+3. Read `<vault>/wiki/index.md` to find any directly relevant pages the graph query might have missed.
+4. Read those pages.
+5. Synthesize an answer that cites the wiki pages (with `[[Page Name]]` links).
+6. **If the answer itself is valuable**, ask: "Want me to file this answer back into the wiki as a new page?" If yes, create `<vault>/wiki/<topic>-analysis-<date>.md` and update the index.
+7. Append to log:
    ```
    ## [YYYY-MM-DD HH:MM] query | "<question>"
    Answered from: <pages>
@@ -416,13 +419,21 @@ A health-check pass. Claude reads the wiki and reports problems.
 
 `/wiki-brain rebuild`
 
-Force a Graphify rebuild.
+Force a Graphify rebuild. Graphify extracts concepts and relationships from all `.md` files in `wiki/` using Claude subagents, then builds `graphify-out/graph.json`.
 
 ```bash
-cd "$VAULT" && graphify . --wiki --update 2>&1 | tail -10
+cd "$VAULT" && graphify ./wiki --update 2>&1 | tail -10
+```
+
+If the graph has never been built (no `graphify-out/graph.json`), run the full build instead:
+
+```bash
+cd "$VAULT" && graphify ./wiki 2>&1 | tail -10
 ```
 
 Update `lastRebuild` in config. Report success or failure.
+
+> **Note:** `graphify update <path>` (CLI form) only re-extracts code files via AST — it does not process `.md` files. Always use `graphify ./wiki` or `graphify ./wiki --update` (slash-command form invoked by Claude Code) to process markdown.
 
 ---
 
@@ -439,8 +450,9 @@ Verify install health. Run these checks and report pass/fail for each:
 5. SessionEnd hook is in `~/.claude/settings.json`
 6. `session-end.sh` is executable
 7. CLAUDE.md contains the wiki-brain block
-8. Last rebuild was within `rebuildCadenceDays × 2` (warn if older)
-9. `log.md` has at least one entry in the last 30 days (warn if not)
+8. `graphify-out/graph.json` exists (warn if not — rebuild needed)
+9. Last rebuild was within `rebuildCadenceDays × 2` (warn if older)
+10. `log.md` has at least one entry in the last 30 days (warn if not)
 
 Display results as a checklist. For any failure, show the exact fix.
 

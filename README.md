@@ -3,8 +3,6 @@
 
 Turn Claude Code into a knowledge base that *compounds.* Every conversation you have from now on feeds a personal wiki you browse in Obsidian. Claude gets smarter about YOUR stuff over time — and answers questions faster by querying a knowledge graph instead of re-reading files every time.
 
-Built on Andrej Karpathy's [LLM Wiki pattern](https://gist.github.com/karpathy) and powered by [Graphify](https://github.com/tenfoldmarc/graphify-skill).
-
 ---
 
 ## What It Does
