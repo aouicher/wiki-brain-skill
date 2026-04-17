@@ -6,12 +6,19 @@ compounding knowledge base. Use it as your primary context source.
 When you need to understand the codebase, docs, past work, or any stored
 knowledge:
 
-1. **ALWAYS query the knowledge graph first:** `graphify query "your question"`
-   (run from `{{VAULT_PATH}}`).
+1. **Query the knowledge graph first (if built):**
+   ```
+   graphify query "your question" --graph {{VAULT_PATH}}/graphify-out/graph.json
+   ```
+   Run from `{{VAULT_PATH}}`. If `graphify-out/graph.json` does not exist yet,
+   skip this step and ask the user to run `/wiki-brain rebuild` in Claude Code.
+
 2. **Use `{{VAULT_PATH}}/wiki/index.md`** as your navigation entrypoint for
    browsing the wiki structure.
+
 3. **Use `{{VAULT_PATH}}/graphify-out/wiki/index.md`** if it exists — it's
    the auto-generated Graphify wiki index.
+
 4. **Only read raw files in `{{VAULT_PATH}}/raw/`** if the user explicitly
    says "read the raw file" or the graph query doesn't have the answer.
 
@@ -51,6 +58,6 @@ no inbound links is a dead-end.
 - `/wiki-brain ingest <file>` — ingest a source
 - `/wiki-brain query "<q>"` — query the graph + wiki
 - `/wiki-brain lint` — health-check the wiki
-- `/wiki-brain rebuild` — force a Graphify rebuild
+- `/wiki-brain rebuild` — force a Graphify rebuild (runs `/graphify ./wiki` in Claude Code)
 - `/wiki-brain doctor` — verify install
 - `/recall` — show last 5 activities + read linked pages

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # wiki-brain SessionEnd hook
 # Runs after every Claude Code session ends. Handles:
-#   - Conditional Graphify rebuild (if cadence due AND files changed)
+#   - Cadence check for Graphify rebuild (notifies user if due — rebuild must be
+#     triggered manually in Claude Code via /wiki-brain rebuild)
 #   - Cadence reminder for lint (macOS notification only)
 # Logging the session itself is handled by Claude during the session, per
 # instructions in the user's CLAUDE.md. This hook is shell-only — it cannot
-# summarize or ingest conversations by itself.
+# summarize, ingest conversations, or run /graphify by itself.
 
 set -u
 
@@ -61,17 +62,9 @@ except Exception:
   echo $(( (NOW_EPOCH - then_epoch) / DAY_SECONDS ))
 }
 
-update_config_field() {
-  # $1 = field, $2 = value
-  python3 -c "
-import json
-c = json.load(open('$CONFIG'))
-c['$1'] = '$2'
-json.dump(c, open('$CONFIG','w'), indent=2)
-" 2>/dev/null || true
-}
-
 # --- Graphify rebuild check ---
+# /graphify is a Claude Code slash command and cannot be run from a shell hook.
+# Instead, check if a rebuild is due and notify the user to trigger it manually.
 if [ -n "$REBUILD_DAYS" ] && [ "$REBUILD_DAYS" != "0" ]; then
   SINCE_REBUILD=$(days_since "$LAST_REBUILD")
   if [ "$SINCE_REBUILD" -ge "$REBUILD_DAYS" ]; then
@@ -87,20 +80,10 @@ if [ -n "$REBUILD_DAYS" ] && [ "$REBUILD_DAYS" != "0" ]; then
     fi
 
     if [ "$CHANGED" = "1" ]; then
-      notify "Rebuilding knowledge graph" "Running in background…"
-      (
-        cd "$VAULT" && graphify ./wiki --update >/tmp/wiki-brain-rebuild.log 2>&1
-        RC=$?
-        mkdir -p "$VAULT/graphify-out"
-        touch "$STAMP"
-        TODAY=$(date +%Y-%m-%d)
-        update_config_field lastRebuild "$TODAY"
-        if [ "$RC" = "0" ]; then
-          notify "Graph rebuilt" "Wiki is up to date."
-        else
-          notify "Rebuild failed" "See /tmp/wiki-brain-rebuild.log"
-        fi
-      ) &
+      notify "Graph rebuild due" "Run /wiki-brain rebuild in Claude Code."
+      # Touch the stamp to avoid re-notifying every session until the user rebuilds
+      mkdir -p "$VAULT/graphify-out"
+      touch "$STAMP"
     fi
   fi
 fi

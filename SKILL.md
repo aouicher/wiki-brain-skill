@@ -189,21 +189,32 @@ If `2`, ask for the path. Verify the file exists (or offer to create it).
 
 Run:
 ```bash
-which graphify 2>/dev/null || python3 -c "import graphify" 2>/dev/null && echo "GRAPHIFY_OK" || echo "GRAPHIFY_MISSING"
+which graphify 2>/dev/null && echo "GRAPHIFY_OK" || echo "GRAPHIFY_MISSING"
 ```
 
-If missing:
-```
-Installing Graphify now... (this is the tool that builds the
-knowledge graph from your wiki files)
-```
+If missing, install using the first method that works:
 
-Run:
 ```bash
-python3 -m pip install graphifyy 2>&1 | tail -3 || python3 -m pip install graphifyy --break-system-packages 2>&1 | tail -3
+# Method 1 — pipx (recommended on macOS/Linux, cleanest isolation)
+pipx install graphifyy 2>&1 | tail -3
 ```
 
-Verify with `python3 -c "import graphify" && echo OK`. If it still fails, show the error and stop — tell the user to run `pip install graphifyy` manually and retry `/wiki-brain`.
+```bash
+# Method 2 — pip user install (fallback if pipx not available)
+python3 -m pip install --user graphifyy 2>&1 | tail -3
+```
+
+```bash
+# Method 3 — system pip with override (last resort, e.g. some Linux distros)
+python3 -m pip install graphifyy --break-system-packages 2>&1 | tail -3
+```
+
+After each attempt, verify with:
+```bash
+which graphify && echo "OK" || echo "STILL MISSING"
+```
+
+If all three fail, show the error and stop — tell the user to install manually and retry `/wiki-brain`.
 
 > **Note:** The PyPI package is named `graphifyy` (double-y). The CLI command is still `graphify` (single y). This is expected.
 
@@ -292,13 +303,16 @@ Write `~/.claude/skills/wiki-brain/config.json`:
 
 ### 0.11 — First build
 
-Run the first Graphify build on the wiki folder so the output directory exists:
+Tell the user to run the first Graphify build from Claude Code to prime the output directory:
 
-```bash
-cd "$VAULT" && graphify ./wiki 2>&1 | tail -5 || true
+```
+Run this in Claude Code (not in a terminal):
+  /graphify ./wiki
 ```
 
-It's OK if this does nothing — the wiki may be empty. Just prime the output directory.
+It's OK if the wiki is empty — this just ensures `graphify-out/` exists for future queries.
+
+> **Important:** `/graphify` is a Claude Code slash command. It cannot be run in a terminal directly — the build requires Claude subagents and runs inside Claude Code only.
 
 ### 0.12 — Confirm and end setup
 
@@ -421,19 +435,21 @@ A health-check pass. Claude reads the wiki and reports problems.
 
 Force a Graphify rebuild. Graphify extracts concepts and relationships from all `.md` files in `wiki/` using Claude subagents, then builds `graphify-out/graph.json`.
 
-```bash
-cd "$VAULT" && graphify ./wiki --update 2>&1 | tail -10
-```
+Tell the user to run from Claude Code (not in a terminal):
 
-If the graph has never been built (no `graphify-out/graph.json`), run the full build instead:
+- **Incremental rebuild** (skips unchanged files — use when graph already exists):
+  ```
+  /graphify ./wiki --update
+  ```
 
-```bash
-cd "$VAULT" && graphify ./wiki 2>&1 | tail -10
-```
+- **Full first build** (use when `graphify-out/graph.json` does not exist yet):
+  ```
+  /graphify ./wiki
+  ```
 
-Update `lastRebuild` in config. Report success or failure.
+After the build completes, update `lastRebuild` in config. Report success or failure.
 
-> **Note:** `graphify update <path>` (CLI form) only re-extracts code files via AST — it does not process `.md` files. Always use `graphify ./wiki` or `graphify ./wiki --update` (slash-command form invoked by Claude Code) to process markdown.
+> **Important:** `/graphify` is a Claude Code slash command — it cannot be run in a terminal. The shell SessionEnd hook only sends a notification; the actual rebuild must be triggered manually in Claude Code using `/wiki-brain rebuild`.
 
 ---
 
